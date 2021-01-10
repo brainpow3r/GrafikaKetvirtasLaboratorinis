@@ -1,0 +1,84 @@
+<html>
+    <head>
+        <title>Shader</title>
+        <meta charset="utf-8">
+</head>
+ 
+    <body>
+        <div id="viewport"></div>
+    </body>
+    
+    <script type="text/javascript" src="libs/three.min.js"></script>
+    <script type="text/javascript" src="libs/jquery-1.9.0.js"></script>
+    <script type="text/javascript" src="libs/TrackballControls.js"></script>
+	<script type="text/javascript" src="libs/dat.gui.js"></script>
+    <script type="text/javascript" src="libs/TeapotGeometry.js"></script>
+    <script type="text/javascript" src="ketvirtas.js"></script>
+
+    <script type="x-shader/x-vertex" id="vertexShader">
+        precision mediump float;
+
+        varying vec3 vPosition; 
+        varying vec3 vNormal; 
+        varying vec2 vUv;
+        uniform float dx, dy, dz;
+        
+        void main(void) {
+            vUv = uv;
+            vNormal = normalMatrix * normal;
+            vPosition = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0 );         
+        }
+    </script>
+ 
+	<script type="x-shader/x-vertex" id="fragmentShader">
+        #extension GL_OES_standard_derivatives : enable
+        precision mediump float;
+        uniform float uEdge;	
+
+        varying vec3 vPosition; 
+        varying vec3 vNormal; 
+        varying vec2 vUv;
+        uniform float dx, dy, dz;
+
+        vec3 checker(vec2 tex) {
+            float posY = normalize(vPosition).y;
+            float absX = abs(vPosition.x);
+            if(posY > -0.05 && posY < 0.22 && absX < 19.0){
+
+                vec3 blue = vec3(0.0,0.0,0.9);
+                vec3 yellow = vec3(0.9,0.9,0.0);
+        
+                float u = fract(vUv.x * 10.0);
+                float v = fract(vUv.y * 10.0);
+        
+                float f = min((0.7-abs(u-v)), (u+v-0.3));
+                f = min(f, 1.7-u-v);
+                f = min(f, u-0.01);
+                f = min(f, 0.99-u);
+                f = min(f, v-0.01);
+                f = min(f, 0.99-v);
+                float grad = length(vec2(dFdx(f),dFdy(f))); 
+                float d = uEdge*grad;
+                float edgeFactor = smoothstep(-d, d, f);
+        
+                // final color
+                return mix(yellow,blue,edgeFactor);
+            }
+            else {
+                return vec3(1.0);
+            }
+        }
+        
+        void main() {	 
+            float intensity = dot(
+                normalize(vec3(dx,dy,dz)),
+                normalize(vNormal)
+            );
+            vec3 color = vec3(intensity);
+            gl_FragColor = vec4(intensity*checker(vUv),1.0);
+        }
+	</script>
+ 
+</html>
+
